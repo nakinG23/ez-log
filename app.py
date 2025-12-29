@@ -1,28 +1,26 @@
 """
-Expense Stream - Frictionless expense tracking API
+EZ Log - Frictionless expense tracking API
 WARNING: This uses in-memory storage. Data will be lost on server restart.
 For production, add a database.
 """
 from flask import Flask, request, jsonify
-from flask_cors import CORS  # Add this import
+from flask_cors import CORS
 import re
 from datetime import datetime
 import os
 
 app = Flask(__name__)
-CORS(app)  # Add this line - allows requests from anywhere
+CORS(app)
 
-# Simple in-memory storage
 expenses = []
 
-@app.route('/log', methods=['POST', 'GET', 'OPTIONS'])  # Add OPTIONS for CORS
+@app.route('/log', methods=['POST', 'GET', 'OPTIONS'])
 def log_expense():
     try:
-        # Handle OPTIONS request for CORS
         if request.method == 'OPTIONS':
             return '', 200
         
-        # For GET requests (testing), show form
+        # for GET requests (testing), show form
         if request.method == 'GET':
             return '''
             <form method="POST">
@@ -34,7 +32,7 @@ def log_expense():
             <p><a href="/expenses">View all expenses</a></p>
             '''
         
-        # Handle POST request
+        # handling POST request
         if request.is_json:
             data = request.get_json()
             text = data.get('text', '').strip()
@@ -44,19 +42,19 @@ def log_expense():
         if not text:
             return jsonify({'error': 'No text provided'}), 400
         
-        # Extract amount and item
+        # extracting amount and item
         amount = 0.0
         item = "Unknown"
         
-        # Find numbers
+        # find the numbers for $$
         numbers = re.findall(r'\d+\.?\d*', text)
         if numbers:
             amount = float(numbers[0])
         
-        # Remove numbers to get item
+        # remove numbers to get item so order doesnt matter
         item = re.sub(r'\d+\.?\d*', '', text).strip(' $,.')
         
-        # Create expense
+        # create the expense
         expense = {
             'id': len(expenses) + 1,
             'text': text,
@@ -64,12 +62,9 @@ def log_expense():
             'amount': amount,
             'timestamp': datetime.now().isoformat()
         }
-        
         expenses.append(expense)
-        
+        # success response
         print(f"✅ Logged: {expense}")
-        
-        # Simple success response
         return jsonify({
             'success': True,
             'message': f'Logged: {item} - ${amount}',
@@ -83,10 +78,10 @@ def log_expense():
 @app.route('/expenses', methods=['GET'])
 def get_expenses():
     """View all expenses"""
-    # Calculate total
+    # calculate total
     total = sum(exp['amount'] for exp in expenses)
     
-    # Return as simple HTML table
+    # showing as simple HTML table for now, gonna move this to a proper desing file with styling
     html = f"""
     <html>
     <head><title>Expenses</title>
@@ -99,7 +94,7 @@ def get_expenses():
     </style>
     </head>
     <body>
-        <h1>📊 Expense Stream</h1>
+        <h1>📊 EZ Log</h1>
         <p>Total logged: ${total:.2f} from {len(expenses)} expenses</p>
         <p><a href="/">Back to logging</a></p>
         
@@ -113,7 +108,7 @@ def get_expenses():
             </tr>
     """
     
-    for exp in reversed(expenses):  # Show newest first
+    for exp in reversed(expenses):  # showing newest first
         html += f"""
             <tr>
                 <td>{exp['id']}</td>
@@ -144,7 +139,7 @@ def home():
     return f'''
     <html>
     <head>
-        <title>Expense Stream API</title>
+        <title>EZ Log API</title>
         <style>
             body {{ font-family: Arial; padding: 40px; max-width: 800px; margin: 0 auto; }}
             code {{ background: #f4f4f4; padding: 10px; display: block; margin: 10px 0; }}
@@ -152,7 +147,7 @@ def home():
         </style>
     </head>
     <body>
-        <h1>💰 Expense Stream API</h1>
+        <h1>💰 EZ Log API</h1>
         <p><strong>API is running!</strong> Logged {len(expenses)} expenses so far.</p>
         
         <div class="endpoint">
@@ -186,5 +181,5 @@ def home():
     '''.format(expenses_count=len(expenses))
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5001))  # Railway sets PORT env variable
+    port = int(os.environ.get("PORT", 5001))  #setting 5001 for local testing since 5000 is used by airplay or smn
     app.run(host='0.0.0.0', port=port, debug=False)  # debug=False for production
